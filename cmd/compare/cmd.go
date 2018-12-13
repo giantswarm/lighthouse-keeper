@@ -137,10 +137,15 @@ func compare(cmd *cobra.Command, args []string) {
 
 func validateFlags(cmd *cobra.Command, args []string) error {
 	if cmd.Flag("input") == nil {
-		return microerror.Maskf(invalidFlagsError, "no --input/-i flag given")
+		return microerror.Maskf(invalidFlagsError, "please specify two reports to compare using --input/-i flags")
 	}
-	if _, err := cmd.Flags().GetStringArray("input"); err != nil {
+
+	inputs, err := cmd.Flags().GetStringArray("input")
+	if err != nil {
 		return microerror.Maskf(invalidFlagsError, "could not read values for --input/-i flags")
+	}
+	if len(inputs) != 2 {
+		return microerror.Maskf(invalidFlagsError, "please specify exactly two --input/-i flags")
 	}
 
 	return nil
