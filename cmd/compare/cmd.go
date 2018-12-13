@@ -78,7 +78,7 @@ func compare(cmd *cobra.Command, args []string) {
 	// Compare main category scores
 	for key, valA := range reports[0].Categories {
 		valB, ok := reports[1].Categories[key]
-		if !ok || valA == valB {
+		if !ok || valA.Score == valB.Score {
 			continue
 		}
 
@@ -102,7 +102,7 @@ func compare(cmd *cobra.Command, args []string) {
 	// Compare individual audits
 	for key, valA := range reports[0].Audits {
 		valB, ok := reports[1].Audits[key]
-		if !ok || valA == valB {
+		if !ok || valA.Score == valB.Score {
 			continue
 		}
 
