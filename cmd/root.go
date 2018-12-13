@@ -12,9 +12,6 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "lighthouse-keeper",
 	Short: "Creates and pretty-prints lighthouse reports for a CI context",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Not yet implemented")
-	},
 }
 
 func init() {
