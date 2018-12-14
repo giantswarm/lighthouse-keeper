@@ -66,6 +66,7 @@ func view(cmd *cobra.Command, args []string) {
 		row := []string{
 			cat.Title,
 			fmt.Sprintf("%.0f", cat.Score*100),
+			"",
 		}
 
 		data = append(data, row)
@@ -86,6 +87,7 @@ func view(cmd *cobra.Command, args []string) {
 			row := []string{
 				"- " + audit.Title,
 				score,
+				fmt.Sprintf("%d", auditRef.Weight),
 			}
 
 			data = append(data, row)
@@ -94,7 +96,7 @@ func view(cmd *cobra.Command, args []string) {
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetAutoWrapText(false)
-	labels := []string{"Metric", "Score"}
+	labels := []string{"Metric", "Score", "Weight"}
 	table.SetHeader(labels)
 
 	for _, v := range data {
