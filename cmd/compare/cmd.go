@@ -76,13 +76,13 @@ func compare(cmd *cobra.Command, args []string) {
 	data := [][]string{}
 
 	// Compare main category scores
-	for key, valA := range reports[0].Categories {
-		valB, ok := reports[1].Categories[key]
-		if !ok || valA.Score == valB.Score {
+	for catID, catA := range reports[0].Categories {
+		catB, ok := reports[1].Categories[catID]
+		if !ok || catA.Score == catB.Score {
 			continue
 		}
 
-		delta := fmt.Sprintf("%.0f", (valB.Score-valA.Score)*100)
+		delta := fmt.Sprintf("%.0f", (catB.Score-catA.Score)*100)
 		if string(delta[0]) == "-" {
 			delta = color.RedString(delta)
 		} else {
@@ -90,37 +90,46 @@ func compare(cmd *cobra.Command, args []string) {
 		}
 
 		row := []string{
-			"Category: " + valA.Title,
-			fmt.Sprintf("%.0f", valA.Score*100),
-			fmt.Sprintf("%.0f", valB.Score*100),
+			catA.Title,
+			fmt.Sprintf("%.0f", catA.Score*100),
+			fmt.Sprintf("%.0f", catB.Score*100),
 			delta,
 		}
 
 		data = append(data, row)
-	}
 
-	// Compare individual audits
-	for key, valA := range reports[0].Audits {
-		valB, ok := reports[1].Audits[key]
-		if !ok || valA.Score == valB.Score {
-			continue
+		// Compare individual audits
+		for _, auditRef := range catA.AuditRefs {
+			auditA, ok := reports[0].Audits[auditRef.ID]
+			if !ok {
+				continue
+			}
+
+			auditB, ok := reports[1].Audits[auditRef.ID]
+			if !ok {
+				continue
+			}
+
+			if auditA.Score == auditB.Score {
+				continue
+			}
+
+			delta := fmt.Sprintf("%.0f", (auditB.Score-auditA.Score)*100)
+			if string(delta[0]) == "-" {
+				delta = color.RedString(delta)
+			} else {
+				delta = color.GreenString("+" + delta)
+			}
+
+			row := []string{
+				"- " + auditA.Title,
+				fmt.Sprintf("%.0f", auditA.Score*100),
+				fmt.Sprintf("%.0f", auditB.Score*100),
+				delta,
+			}
+
+			data = append(data, row)
 		}
-
-		delta := fmt.Sprintf("%.0f", (valB.Score-valA.Score)*100)
-		if string(delta[0]) == "-" {
-			delta = color.RedString(delta)
-		} else {
-			delta = color.GreenString("+" + delta)
-		}
-
-		row := []string{
-			"Audit: " + valA.Title,
-			fmt.Sprintf("%.0f", valA.Score*100),
-			fmt.Sprintf("%.0f", valB.Score*100),
-			delta,
-		}
-
-		data = append(data, row)
 	}
 
 	table := tablewriter.NewWriter(os.Stdout)
