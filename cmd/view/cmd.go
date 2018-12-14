@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/giantswarm/microerror"
 	"github.com/olekukonko/tablewriter"
@@ -64,7 +65,7 @@ func view(cmd *cobra.Command, args []string) {
 	// Print by category, then by audit
 	for _, cat := range report.Categories {
 		row := []string{
-			cat.Title,
+			strings.ToUpper(cat.Title),
 			fmt.Sprintf("%.0f", cat.Score*100),
 			"",
 		}
