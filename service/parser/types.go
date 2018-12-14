@@ -43,9 +43,16 @@ type Audit struct {
 }
 
 type Category struct {
-	ID    string
-	Title string
-	Score float32
+	ID        string     `json:"id"`
+	Title     string     `json:"title"`
+	Score     float32    `json:"score"`
+	AuditRefs []AuditRef `json:"auditRefs"`
+}
+
+type AuditRef struct {
+	ID     string `json:"id"`
+	Weight int    `json:"weight"`
+	Group  string `json:"group"`
 }
 
 // RawValue is the type representing
