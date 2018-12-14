@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/giantswarm/lighthouse-keeper/cmd/compare"
+	"github.com/giantswarm/lighthouse-keeper/cmd/view"
 )
 
 var RootCmd = &cobra.Command{
@@ -16,6 +17,7 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(compare.Cmd)
+	RootCmd.AddCommand(view.Cmd)
 }
 
 // Execute is called by main to run the CLI
