@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/lighthouse-keeper/cmd/audit"
 	"github.com/giantswarm/lighthouse-keeper/cmd/compare"
 	"github.com/giantswarm/lighthouse-keeper/cmd/view"
 )
@@ -16,6 +17,7 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(audit.Cmd)
 	RootCmd.AddCommand(compare.Cmd)
 	RootCmd.AddCommand(view.Cmd)
 }
