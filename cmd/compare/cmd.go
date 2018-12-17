@@ -3,6 +3,7 @@
 package compare
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 
+	"github.com/giantswarm/lighthouse-keeper/service/commenter"
 	"github.com/giantswarm/lighthouse-keeper/service/parser"
 )
 
@@ -21,11 +23,28 @@ var Cmd = &cobra.Command{
 	Short:   "Compare two lighthouse reports",
 	PreRunE: validateFlags,
 	Run:     compare,
+	Example: `
+  lighthouse-keeper compare \
+    --input lighthouse-a.json --inputlabel before \
+    --input lighthouse-b.json --inputlabel after
+
+  lighthouse-keeper compare \
+    --input lighthouse-a.json --inputlabel before \
+    --input lighthouse-b.json --inputlabel after \
+    --github-owner giantswarm \
+    --github-repo lighthouse-keeper \
+    --github-issue 11 \
+    --github-token $(cat ~/.github-token) \
+`,
 }
 
 func init() {
 	Cmd.Flags().StringArrayP("input", "i", []string{}, "Input file path, to be used twice")
 	Cmd.Flags().StringArrayP("inputlabel", "l", []string{}, "Input file label, to b used twice")
+	Cmd.Flags().StringP("github-owner", "", "", "GitHub user or org owning the repo to post the result to as a comment")
+	Cmd.Flags().StringP("github-repo", "", "", "GitHub repo to post the reult to as a comment")
+	Cmd.Flags().IntP("github-issue", "", 0, "GitHub issue or PR ID to post this to as a comment")
+	Cmd.Flags().StringP("github-token", "", "", "Personal GitHub auth token to submit the comparison as a comment")
 }
 
 func compare(cmd *cobra.Command, args []string) {
@@ -75,6 +94,9 @@ func compare(cmd *cobra.Command, args []string) {
 	// output table data
 	data := [][]string{}
 
+	// table data that works in markdown, without ANSII escape sequences
+	markdownData := [][]string{}
+
 	// Compare main category scores
 	for catID, catA := range reports[0].Categories {
 		catB, ok := reports[1].Categories[catID]
@@ -83,10 +105,14 @@ func compare(cmd *cobra.Command, args []string) {
 		}
 
 		delta := fmt.Sprintf("%.0f", (catB.Score-catA.Score)*100)
+		markdownDelta := delta
+
 		if string(delta[0]) == "-" {
 			delta = color.RedString(delta)
+			markdownDelta = "❌  " + markdownDelta
 		} else {
 			delta = color.GreenString("+" + delta)
+			markdownDelta = "✅  " + "+" + markdownDelta
 		}
 
 		row := []string{
@@ -96,7 +122,16 @@ func compare(cmd *cobra.Command, args []string) {
 			delta,
 		}
 
+		markdownRow := []string{
+			"**" + catA.Title + "**",
+			fmt.Sprintf("%.0f", catA.Score*100),
+			fmt.Sprintf("%.0f", catB.Score*100),
+			markdownDelta,
+		}
+
 		data = append(data, row)
+
+		markdownData = append(markdownData, markdownRow)
 
 		// Compare individual audits
 		for _, auditRef := range catA.AuditRefs {
@@ -115,10 +150,14 @@ func compare(cmd *cobra.Command, args []string) {
 			}
 
 			delta := fmt.Sprintf("%.0f", (auditB.Score-auditA.Score)*100)
+			markdownDelta := delta
+
 			if string(delta[0]) == "-" {
 				delta = color.RedString(delta)
+				markdownDelta = "❌  " + markdownDelta
 			} else {
 				delta = color.GreenString("+" + delta)
+				markdownDelta = "✅  " + " +" + markdownDelta
 			}
 
 			row := []string{
@@ -128,7 +167,16 @@ func compare(cmd *cobra.Command, args []string) {
 				delta,
 			}
 
+			markdownRow := []string{
+				"- " + auditA.Title,
+				fmt.Sprintf("%.0f", auditA.Score*100),
+				fmt.Sprintf("%.0f", auditB.Score*100),
+				markdownDelta,
+			}
+
 			data = append(data, row)
+
+			markdownData = append(markdownData, markdownRow)
 		}
 	}
 
@@ -142,6 +190,66 @@ func compare(cmd *cobra.Command, args []string) {
 	}
 
 	table.Render()
+
+	// comment to Github
+	var owner string
+	var repo string
+	var token string
+	var issue int
+	{
+		owner, err = cmd.Flags().GetString("github-owner")
+		if err != nil {
+			fmt.Println("Error while reading --github-owner flag:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		repo, err = cmd.Flags().GetString("github-repo")
+		if err != nil {
+			fmt.Println("Error while reading --github-repo flag:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		token, err = cmd.Flags().GetString("github-token")
+		if err != nil {
+			fmt.Println("Error while reading --github-token flag:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		issue, err = cmd.Flags().GetInt("github-issue")
+		if err != nil {
+			fmt.Println("Error while reading --github-issue flag:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		if owner != "" && repo != "" && token != "" && issue != 0 {
+			var body string
+			if len(markdownData) > 0 {
+				var buf bytes.Buffer
+				markdownTable := tablewriter.NewWriter(&buf)
+				markdownTable.SetHeader(labels)
+				markdownTable.SetAutoWrapText(false)
+				markdownTable.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+				markdownTable.SetCenterSeparator("|")
+				markdownTable.AppendBulk(markdownData)
+				markdownTable.Render()
+
+				body = "Comparison of lighthouse reports:\n\n"
+				body += buf.String()
+			} else {
+				body = "Comparison of lighthouse reports showed no difference."
+			}
+
+			err = commenter.AddComment(token, owner, repo, body, issue)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+
 }
 
 func validateFlags(cmd *cobra.Command, args []string) error {
