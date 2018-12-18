@@ -12,7 +12,7 @@ import (
 )
 
 // AuditURL creates a lighthouse report and returns the path
-func AuditURL(url, name, formFactor string) (path string, err error) {
+func AuditURL(url, name, formFactor string, dockerLinks []string) (path string, err error) {
 	fmt.Printf("Creating lighthouse report\nURL: %s\nForm factor: %s\nOutput file: %s.json\n", url, formFactor, name)
 
 	pwd, err := os.Getwd()
@@ -30,6 +30,11 @@ func AuditURL(url, name, formFactor string) (path string, err error) {
 		formFactor = "desktop"
 	}
 
+	linkArgs := []string{}
+	for _, l := range dockerLinks {
+		linkArgs = append(linkArgs, fmt.Sprintf("--link=%s", l))
+	}
+
 	args := []string{
 		"run",
 		"--rm",
@@ -37,6 +42,9 @@ func AuditURL(url, name, formFactor string) (path string, err error) {
 		fmt.Sprintf("-v=%s:/workdir", pwd),
 		fmt.Sprintf("-v=%s:/dev/shm", tmpDir),
 		"-w=/workdir",
+	}
+
+	moreArgs := []string{
 		"quay.io/giantswarm/lighthouse:latest",
 		"lighthouse",
 		"--quiet",
@@ -46,6 +54,13 @@ func AuditURL(url, name, formFactor string) (path string, err error) {
 		fmt.Sprintf("--emulated-form-factor=%s", formFactor),
 		fmt.Sprintf("--output-path=/workdir/%s.json", name),
 		url,
+	}
+
+	for _, a := range linkArgs {
+		args = append(args, a)
+	}
+	for _, a := range moreArgs {
+		args = append(args, a)
 	}
 
 	command := exec.Command("docker", args...)

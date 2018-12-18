@@ -25,6 +25,8 @@ var Cmd = &cobra.Command{
 
   lighthouse-keeper audit --name mysite --form-factor mobile --url https://example.com/
 
+  lighthouse-keeper audit --url https://container:5000/ --docker-link container:container
+
   lighthouse-keeper audit \
     --name first-name --url http://first-url \
     --name second-name --url http://second-url`,
@@ -34,6 +36,7 @@ func init() {
 	Cmd.Flags().StringArrayP("url", "u", []string{}, "URL to audit, can be used multiple times")
 	Cmd.Flags().StringArrayP("name", "n", []string{}, "Output file name prefix, can be used multiple times")
 	Cmd.Flags().StringP("form-factor", "f", "desktop", "Either 'desktop' or 'mobile")
+	Cmd.Flags().StringArrayP("docker-link", "l", []string{}, "Link the lighthouse docker container to these named links")
 }
 
 func audit(cmd *cobra.Command, args []string) {
@@ -47,6 +50,13 @@ func audit(cmd *cobra.Command, args []string) {
 	names, err := cmd.Flags().GetStringArray("name")
 	if err != nil {
 		fmt.Println("Error while reading --name flag:")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	dockerLinks, err := cmd.Flags().GetStringArray("docker-link")
+	if err != nil {
+		fmt.Println("Error while reading --docker-link flag:")
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -65,7 +75,7 @@ func audit(cmd *cobra.Command, args []string) {
 			names = append(names, t.Format("20060102-150405")+fmt.Sprintf("-%s-%d", formFactor, index+1))
 		}
 
-		_, err := lighthouse.AuditURL(url, names[index], formFactor)
+		_, err := lighthouse.AuditURL(url, names[index], formFactor, dockerLinks)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
