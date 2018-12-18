@@ -244,7 +244,7 @@ func compare(cmd *cobra.Command, args []string) {
 				body = "Comparison of lighthouse reports:\n\n"
 				body += buf.String()
 			} else {
-				body = fmt.Sprintf("Comparison of lighthouse reports between `%s` and `%s` showed no difference.", labels[0], labels[1])
+				body = fmt.Sprintf("Comparison of lighthouse reports between `%s` and `%s` showed no difference.", inputLabel[0], inputLabel[1])
 			}
 
 			err = commenter.AddComment(token, owner, repo, body, issue)
