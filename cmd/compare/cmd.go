@@ -189,7 +189,11 @@ func compare(cmd *cobra.Command, args []string) {
 		table.Append(v)
 	}
 
-	table.Render()
+	if len(data) > 0 {
+		table.Render()
+	} else {
+		fmt.Printf("The comparison of lighthouse reports between `%s` and `%s` showed no difference.\n", labels[0], labels[1])
+	}
 
 	// comment to Github
 	var owner string
