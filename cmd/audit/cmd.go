@@ -37,6 +37,7 @@ func init() {
 	Cmd.Flags().StringArrayP("name", "n", []string{}, "Output file name prefix, can be used multiple times")
 	Cmd.Flags().StringP("form-factor", "f", "desktop", "Either 'desktop' or 'mobile")
 	Cmd.Flags().StringArrayP("docker-link", "l", []string{}, "Link the lighthouse docker container to these named links")
+	Cmd.Flags().BoolP("ignore-certificate-errors", "", false, "Ignore certificate errors")
 }
 
 func audit(cmd *cobra.Command, args []string) {
@@ -68,6 +69,13 @@ func audit(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	ignoreCertErrors, err := cmd.Flags().GetBool("ignore-certificate-errors")
+	if err != nil {
+		fmt.Println("Error while reading --ignore-certificate-errors flag:")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	for index, url := range urls {
 		// set automatic output name if none given
 		if len(names) < (index + 1) {
@@ -75,7 +83,7 @@ func audit(cmd *cobra.Command, args []string) {
 			names = append(names, t.Format("20060102-150405")+fmt.Sprintf("-%s-%d", formFactor, index+1))
 		}
 
-		_, err := lighthouse.AuditURL(url, names[index], formFactor, dockerLinks)
+		_, err := lighthouse.AuditURL(url, names[index], formFactor, dockerLinks, ignoreCertErrors)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
