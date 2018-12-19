@@ -12,7 +12,7 @@ import (
 )
 
 // AuditURL creates a lighthouse report and returns the path
-func AuditURL(url, name, formFactor string, dockerLinks []string) (path string, err error) {
+func AuditURL(url, name, formFactor string, dockerLinks []string, ignoreCertErrors bool) (path string, err error) {
 	fmt.Printf("Creating lighthouse report\nURL: %s\nForm factor: %s\nOutput file: %s.json\n", url, formFactor, name)
 
 	pwd, err := os.Getwd()
@@ -28,6 +28,11 @@ func AuditURL(url, name, formFactor string, dockerLinks []string) (path string, 
 
 	if formFactor != "desktop" && formFactor != "mobile" {
 		formFactor = "desktop"
+	}
+
+	ignoreCertErrorsFlag := ""
+	if ignoreCertErrors {
+		ignoreCertErrorsFlag = "--ignore-certificate-errors"
 	}
 
 	linkArgs := []string{}
@@ -50,7 +55,7 @@ func AuditURL(url, name, formFactor string, dockerLinks []string) (path string, 
 		"--quiet",
 		"--no-enable-error-reporting",
 		"--output=json",
-		"--chrome-flags=--no-sandbox --headless",
+		fmt.Sprintf("--chrome-flags=--no-sandbox --headless %s", ignoreCertErrorsFlag),
 		fmt.Sprintf("--emulated-form-factor=%s", formFactor),
 		fmt.Sprintf("--output-path=/workdir/%s.json", name),
 		url,
